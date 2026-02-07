@@ -4,7 +4,7 @@ A focus timer with AI-powered task categorization. Available as both a terminal 
 
 ## Features
 
-- **25-minute focus timer** with automatic short/long break cycling
+- **Selectable focus duration** (5, 15, 25, or 50 minutes — or type any custom value) with automatic short/long break cycling
 - **AI categorization** — Claude automatically categorizes tasks (Deep Work, Learning, Creative, etc.)
 - **Session history** — tracks all completed and stopped sessions
 - **Statistics** — summary of focus time by category
@@ -57,16 +57,19 @@ python pomodoro.py config pomodoro_minutes 30
 python pomodoro.py gui
 ```
 
-Enter a task, pick a category (or leave on "Auto-detect"), and click Start. The timer auto-transitions to a break when the focus session completes.
+Or double-click **`Pomodoro.command`** from Finder (drag it to the Dock for quick access).
+
+Enter a task, pick a category (or leave on "Auto-detect"), choose a duration, and click Start or press Return. The timer auto-transitions to a break when the focus session completes.
 
 ## Project Structure
 
 ```
-pomodoro.py     — CLI entry point (Click commands)
-gui.py          — Desktop GUI (tkinter)
-timer.py        — Countdown timer with Rich TUI display
-categorizer.py  — AI task categorization via Claude API
-storage.py      — JSON-based session and config persistence
-config.json     — User settings and API key
-data/           — Session history (auto-created)
+pomodoro.py        — CLI entry point (Click commands)
+gui.py             — Desktop GUI (tkinter)
+timer.py           — Countdown timer with Rich TUI display
+categorizer.py     — AI task categorization via Claude API
+storage.py         — JSON-based session and config persistence
+Pomodoro.command   — Double-clickable macOS launcher for the GUI
+config.json        — User settings and API key
+data/              — Session history (auto-created)
 ```
