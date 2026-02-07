@@ -17,6 +17,9 @@ FOCUS = "FOCUS"
 BREAK = "BREAK"
 PAUSED = "PAUSED"
 
+# Duration presets (minutes)
+DURATIONS = [5, 15, 25, 50]
+
 # Theme colors
 THEMES = {
     IDLE: {"bg": "#2b2b2b", "fg": "#ffffff", "accent": "#888888", "bar": "#555555"},
@@ -46,6 +49,7 @@ class PomodoroGUI:
         self._build_ui()
         self._refresh_history()
         self._apply_theme(IDLE)
+        self.root.bind("<Return>", lambda e: self._on_start())
 
     def _build_ui(self) -> None:
         # --- Title ---
@@ -74,7 +78,21 @@ class PomodoroGUI:
             state="readonly",
             width=14,
         )
-        self.category_combo.grid(row=0, column=2)
+        self.category_combo.grid(row=0, column=2, padx=(0, 8))
+
+        self.duration_var = tk.StringVar(value="25")
+        self.duration_spin = ttk.Spinbox(
+            task_frame,
+            textvariable=self.duration_var,
+            values=[str(d) for d in DURATIONS],
+            wrap=True,
+            width=5,
+        )
+        self.duration_spin.grid(row=0, column=3, padx=(0, 4))
+        ttk.Label(task_frame, text="min").grid(row=0, column=4, sticky="w")
+
+        self.duration_var.trace_add("write", self._on_duration_changed)
+
         task_frame.columnconfigure(1, weight=1)
 
         ttk.Separator(self.root, orient="horizontal").pack(fill="x", padx=10)
@@ -90,7 +108,7 @@ class PomodoroGUI:
 
         self.time_label = tk.Label(
             self.timer_frame,
-            text=format_time(self.config["pomodoro_minutes"] * 60),
+            text=format_time(self._get_duration_minutes() * 60),
             font=("Helvetica", 48, "bold"),
         )
         self.time_label.pack(pady=(5, 10))
@@ -166,6 +184,21 @@ class PomodoroGUI:
         )
         self.progress.configure(style="Timer.Horizontal.TProgressbar")
 
+    # --- Duration helpers ---
+
+    def _get_duration_minutes(self) -> int:
+        try:
+            val = int(self.duration_var.get())
+            return val if val > 0 else 25
+        except (ValueError, tk.TclError):
+            return 25
+
+    def _on_duration_changed(self, *_args) -> None:
+        if self.state == IDLE:
+            self.time_label.configure(
+                text=format_time(self._get_duration_minutes() * 60)
+            )
+
     # --- Timer logic ---
 
     def _tick(self) -> None:
@@ -222,7 +255,7 @@ class PomodoroGUI:
             self._apply_theme(IDLE)
             self.mode_label.configure(text="READY")
             self.time_label.configure(
-                text=format_time(self.config["pomodoro_minutes"] * 60)
+                text=format_time(self._get_duration_minutes() * 60)
             )
             self.progress["value"] = 0
             self.start_btn.configure(state="normal")
@@ -230,6 +263,7 @@ class PomodoroGUI:
             self.reset_btn.configure(state="disabled")
             self.task_entry.configure(state="normal")
             self.category_combo.configure(state="readonly")
+            self.duration_spin.configure(state="normal")
 
     # --- Button handlers ---
 
@@ -241,7 +275,7 @@ class PomodoroGUI:
 
         self.current_task = task
         self.state = FOCUS
-        self.total = self.config["pomodoro_minutes"] * 60
+        self.total = self._get_duration_minutes() * 60
         self.remaining = self.total
         self.elapsed = 0
 
@@ -262,6 +296,7 @@ class PomodoroGUI:
         self.reset_btn.configure(state="normal")
         self.task_entry.configure(state="disabled")
         self.category_combo.configure(state="disabled")
+        self.duration_spin.configure(state="disabled")
 
         self.timer_id = self.root.after(1000, self._tick)
 
@@ -298,7 +333,7 @@ class PomodoroGUI:
         self._apply_theme(IDLE)
         self.mode_label.configure(text="READY")
         self.time_label.configure(
-            text=format_time(self.config["pomodoro_minutes"] * 60)
+            text=format_time(self._get_duration_minutes() * 60)
         )
         self.progress["value"] = 0
         self.start_btn.configure(state="normal")
@@ -306,6 +341,7 @@ class PomodoroGUI:
         self.reset_btn.configure(state="disabled")
         self.task_entry.configure(state="normal")
         self.category_combo.configure(state="readonly")
+        self.duration_spin.configure(state="normal")
 
     # --- Async categorization ---
 
