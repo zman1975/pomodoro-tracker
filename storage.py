@@ -45,3 +45,15 @@ def save_session(task: str, category: str, duration_seconds: int, completed: boo
     with open(SESSIONS_FILE, "w") as f:
         json.dump(sessions, f, indent=2)
     return record
+
+
+def update_session_category(session_id: int, new_category: str) -> bool:
+    """Update the category of an existing session. Returns True if found and updated."""
+    sessions = load_sessions()
+    for session in sessions:
+        if session["id"] == session_id:
+            session["category"] = new_category
+            with open(SESSIONS_FILE, "w") as f:
+                json.dump(sessions, f, indent=2)
+            return True
+    return False

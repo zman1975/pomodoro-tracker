@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+import subprocess
 from threading import Thread
 from queue import Queue, Empty
 
 from timer import format_time
 from categorizer import categorize_task, CATEGORIES
-from storage import load_config, load_sessions, save_session
+from storage import load_config, load_sessions, save_session, update_session_category
 
 # States
 IDLE = "IDLE"
@@ -168,6 +169,8 @@ class PomodoroGUI:
         self.tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        self.tree.bind("<Double-1>", self._on_tree_double_click)
+
     # --- Theme ---
 
     def _apply_theme(self, state: str) -> None:
@@ -221,7 +224,7 @@ class PomodoroGUI:
         self.progress["value"] = progress_val
 
     def _on_timer_complete(self) -> None:
-        self.root.bell()
+        subprocess.Popen(["afplay", "/System/Library/Sounds/Purr.aiff"])
 
         if self.state == FOCUS:
             # Save the focus session
@@ -362,12 +365,47 @@ class PomodoroGUI:
 
     # --- History ---
 
+    def _on_tree_double_click(self, event) -> None:
+        col = self.tree.identify_column(event.x)
+        if col != "#3":
+            return
+        item_id = self.tree.identify_row(event.y)
+        if not item_id:
+            return
+
+        bbox = self.tree.bbox(item_id, column="category")
+        if not bbox:
+            return
+
+        current_values = self.tree.item(item_id, "values")
+        current_category = current_values[2]
+
+        combo = ttk.Combobox(
+            self.tree,
+            values=CATEGORIES,
+            state="readonly",
+            width=12,
+        )
+        combo.set(current_category)
+        combo.place(x=bbox[0], y=bbox[1], width=bbox[2], height=max(bbox[3], 28))
+        combo.focus_set()
+
+        combo.bind("<<ComboboxSelected>>", lambda e: self._commit_category_edit(item_id, combo))
+        combo.bind("<FocusOut>", lambda e: combo.destroy())
+
+    def _commit_category_edit(self, item_id: str, combobox: ttk.Combobox) -> None:
+        new_category = combobox.get()
+        session_id = int(self.tree.item(item_id, "values")[0])
+        update_session_category(session_id, new_category)
+        combobox.destroy()
+        self._refresh_history()
+
     def _refresh_history(self) -> None:
         for item in self.tree.get_children():
             self.tree.delete(item)
 
         sessions = load_sessions()
-        for s in sessions[-10:]:
+        for s in reversed(sessions[-10:]):
             m, sec = divmod(s["duration_seconds"], 60)
             status = "Done" if s["completed"] else "Stopped"
             # Parse date simply
